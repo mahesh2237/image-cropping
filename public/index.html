@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Cropping App</title>
+  <link href="https://unpkg.com/cropperjs/dist/cropper.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 50px;
+    }
+    #image {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+    #preview {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Image Cropping App</h1>
+  <form id="uploadForm">
+    <input type="file" id="imageInput" name="image" accept="image/*" required>
+    <button type="button" id="cropButton">Crop and Upload</button>
+  </form>
+  <img id="image" alt="Image to crop">
+  <img id="preview" src="" alt="Cropped Image Preview">
+  <script src="https://unpkg.com/cropperjs"></script>
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const image = document.getElementById('image');
+    const cropButton = document.getElementById('cropButton');
+    let cropper;
+
+    imageInput.addEventListener('change', (event) => {
+      const files = event.target.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        const url = URL.createObjectURL(file);
+        image.src = url;
+        if (cropper) {
+          cropper.destroy();
+        }
+        cropper = new Cropper(image, {
+          aspectRatio: 16 / 9,
+          viewMode: 1,
+        });
+      }
+    });
+
+    cropButton.addEventListener('click', async () => {
+      if (cropper) {
+        const canvas = cropper.getCroppedCanvas();
+        canvas.toBlob(async (blob) => {
+          const formData = new FormData();
+          formData.append('image', blob, 'cropped.png');
+
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+          if (result.croppedImage) {
+            document.getElementById('preview').src = `/uploads/${result.croppedImage}`;
+          } else {
+            alert(result.message);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
